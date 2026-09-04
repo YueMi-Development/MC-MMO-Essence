@@ -1,7 +1,53 @@
 # MC-MMO-Essence Configuration
 
 # Do not change this version!
-config-version: 2
+config-version: 3
 
 # Default max essence level for each element
 max-essence: 100
+
+# Configurable element definitions
+# Each element can have: name, color, lore, weakness
+elements:
+  FIRE:
+    name: "<red>Fire"
+    color: "RED"
+    lore:
+      - "<gray>Essence: <red>{current}<gray>/<red>{max}"
+    weakness:
+      - "WATER"
+  WATER:
+    name: "<blue>Water"
+    color: "BLUE"
+    lore:
+      - "<gray>Essence: <blue>{current}<gray>/<blue>{max}"
+    weakness:
+      - "FIRE"
+  EARTH:
+    name: "<green>Earth"
+    color: "GREEN"
+    lore:
+      - "<gray>Essence: <green>{current}<gray>/<green>{max}"
+    weakness:
+      - "WIND"
+  WIND:
+    name: "<white>Wind"
+    color: "WHITE"
+    lore:
+      - "<gray>Essence: <white>{current}<gray>/<white>{max}"
+    weakness:
+      - "EARTH"
+  DARK:
+    name: "<dark_gray>Dark"
+    color: "GRAY"
+    lore:
+      - "<gray>Essence: <dark_gray>{current}<gray>/<dark_gray>{max}"
+    weakness:
+      - "LIGHT"
+  LIGHT:
+    name: "<yellow>Light"
+    color: "YELLOW"
+    lore:
+      - "<gray>Essence: <yellow>{current}<gray>/<yellow>{max}"
+    weakness:
+      - "DARK"

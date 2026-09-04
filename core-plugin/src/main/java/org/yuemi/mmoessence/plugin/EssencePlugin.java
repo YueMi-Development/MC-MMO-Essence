@@ -4,12 +4,15 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yuemi.mmoessence.api.EssenceApi;
 import org.yuemi.mmoessence.api.EssenceApiProvider;
+import org.yuemi.mmoessence.plugin.command.EssenceCommand;
 import org.yuemi.mmoessence.plugin.config.EssenceConfig;
+import org.yuemi.mmoessence.plugin.gui.EssenceGuiManager;
 
 public class EssencePlugin extends JavaPlugin {
 
     private EssenceConfig config;
     private EssenceApiImpl api;
+    private EssenceGuiManager guiManager;
 
     @Override
     public void onEnable() {
@@ -20,7 +23,7 @@ public class EssencePlugin extends JavaPlugin {
         reloadConfig();
 
         // Load configuration
-        this.config = new EssenceConfig();
+        this.config = new EssenceConfig(this);
         this.config.loadFromConfig(getConfig());
 
         // Initialize API
@@ -36,13 +39,24 @@ public class EssencePlugin extends JavaPlugin {
 
         EssenceApiProvider.setApi(api);
 
+        // Initialize GUI manager
+        this.guiManager = new EssenceGuiManager(this, config);
+        guiManager.initialize();
+
+        // Register command
+        EssenceCommand command = new EssenceCommand(guiManager);
+        getCommand("essence").setExecutor(command);
+        getCommand("essence").setTabCompleter(command);
+
         getLogger().info("MmoEssence enabled!");
     }
 
     @Override
     public void onDisable() {
         EssenceApiProvider.setApi(null);
-        getServer().getServicesManager().unregister(EssenceApi.class, api);
+        if (api != null) {
+            getServer().getServicesManager().unregister(EssenceApi.class, api);
+        }
         getLogger().info("MmoEssence disabled!");
     }
 

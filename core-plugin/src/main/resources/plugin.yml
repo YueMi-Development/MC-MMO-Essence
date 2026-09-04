@@ -7,3 +7,8 @@ api-version: '${apiVersion}'
 softdepend: [
   YueMiLibs
 ]
+commands:
+  essence:
+    description: Open the essence stats menu
+    usage: /<command>
+    permission: essence.gui
