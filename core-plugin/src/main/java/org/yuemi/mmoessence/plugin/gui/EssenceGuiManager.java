@@ -1,9 +1,9 @@
 package org.yuemi.mmoessence.plugin.gui;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -16,9 +16,10 @@ import org.yuemi.mmoessence.plugin.EssencePlugin;
 import org.yuemi.mmoessence.plugin.config.EssenceConfig;
 import org.yuemi.mmoessence.plugin.config.element.ElementConfig;
 import org.yuemi.mmoessence.plugin.config.gui.GeneralConfig;
-import org.yuemi.mmoessence.plugin.config.gui.StatsConfig;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class EssenceGuiManager {
 
@@ -34,29 +35,46 @@ public class EssenceGuiManager {
 
     public void initialize() {
         GuiApi guiApi = GuiProvider.getApi();
-        
+
         if (guiApi == null) {
             plugin.getLogger().warning("GuiApi not available. GUI disabled.");
             return;
         }
 
         GeneralConfig generalConfig = config.getGeneralConfig();
-        
+        int rows = generalConfig.rows();
+        int totalSlots = rows * 9;
+
+        // Calculate reserved slots (elements)
+        Set<Integer> reservedSlots = new HashSet<>();
+        if (generalConfig.elements() != null) {
+            for (var entry : generalConfig.elements().entrySet()) {
+                reservedSlots.addAll(entry.getValue().slots());
+            }
+        }
+
         this.gui = guiApi.createBuilder()
                 .title(serializeLegacy(generalConfig.title()))
-                .rows(generalConfig.rows())
+                .rows(rows)
+                // Layer 0: Border - auto-fill all non-reserved slots
                 .createLayer("border", 0, layer -> {
-                    for (int slot : generalConfig.borderSlots()) {
-                        layer.setItem(slot, createBorderItem(generalConfig.borderColor()));
+                    for (int slot = 0; slot < totalSlots; slot++) {
+                        if (!reservedSlots.contains(slot)) {
+                            layer.setItem(slot, createBorderItem());
+                        }
                     }
                 })
+                // Layer 1: Elements - place element items at their slots
                 .createLayer("elements", 1, layer -> {
-                    StatsConfig statsConfig = config.getStatsConfig();
-                    if (statsConfig != null && statsConfig.elements() != null) {
-                        for (var entry : statsConfig.elements().entrySet()) {
+                    if (generalConfig.elements() != null) {
+                        for (var entry : generalConfig.elements().entrySet()) {
                             String elementName = entry.getKey();
-                            StatsConfig.ElementDisplayConfig displayConfig = entry.getValue();
-                            layer.setItem(displayConfig.slot(), createElementItem(elementName, displayConfig));
+                            GeneralConfig.ElementDisplayConfig displayConfig = entry.getValue();
+                            for (int slot : displayConfig.slots()) {
+                                if (slot < totalSlots) {
+                                    layer.setItem(slot, createElementItem(elementName, displayConfig));
+                                }
+                            }
                         }
                     }
                 })
@@ -74,22 +92,26 @@ public class EssenceGuiManager {
         return gui != null;
     }
 
-    private GuiItem createBorderItem(DyeColor color) {
-        Material material = getGlassPaneMaterial(color);
-        
+    private GuiItem createBorderItem() {
+        ItemStack item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(" "));
+            item.setItemMeta(meta);
+        }
         return GuiItem.builder()
-                .item(new ItemStack(material))
+                .item(item)
                 .condition(player -> true)
                 .build();
     }
 
-    private GuiItem createElementItem(String elementName, StatsConfig.ElementDisplayConfig displayConfig) {
+    private GuiItem createElementItem(String elementName, GeneralConfig.ElementDisplayConfig displayConfig) {
         return GuiItem.builder()
                 .item(player -> createElementItemStack(elementName, displayConfig, player))
                 .build();
     }
 
-    private ItemStack createElementItemStack(String elementName, StatsConfig.ElementDisplayConfig displayConfig, Player player) {
+    private ItemStack createElementItemStack(String elementName, GeneralConfig.ElementDisplayConfig displayConfig, Player player) {
         ElementConfig elementConfig = config.getElement(elementName);
         if (elementConfig == null) {
             return new ItemStack(Material.PAPER);
@@ -97,25 +119,38 @@ public class EssenceGuiManager {
 
         ElementType elementType = parseElementType(elementName);
         EssenceApi api = EssenceApiProvider.getApi();
-        
-        final int finalCurrent = api != null && elementType != null ? api.getEssence(player, elementType) : 0;
-        final int max = config.getMaxEssence();
-        final double finalPercent = max > 0 ? (finalCurrent * 100.0 / max) : 0;
 
-        Material material = getGlassPaneMaterial(displayConfig.color());
+        final int current = api != null && elementType != null ? api.getEssence(player, elementType) : 0;
+        final int max = config.getMaxEssence();
+        final double percent = max > 0 ? (current * 100.0 / max) : 0;
+
+        // Get material using YueMiLibs item provider
+        Material material = parseMaterial(displayConfig.material());
+
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.displayName(miniMessage.deserialize(displayConfig.name()));
-            meta.lore(displayConfig.lore().stream()
-                    .map(line -> replacePlaceholders(line, finalCurrent, max, finalPercent))
+            meta.displayName(miniMessage.deserialize("<white>" + elementConfig.name()));
+
+            // Build lore: base lore + progress lore (if enabled)
+            List<String> lore = new java.util.ArrayList<>(displayConfig.resolvedLore());
+            if (displayConfig.showProgress()) {
+                List<String> progressLore = config.getGeneralConfig().getProgressLore();
+                lore.addAll(progressLore.stream()
+                        .map(line -> replacePlaceholders(line, current, max, percent))
+                        .toList());
+            }
+
+            meta.lore(lore.stream()
+                    .map(line -> "<!i>" + line)
                     .map(miniMessage::deserialize)
-                    .map(Component.class::cast)
+                    .map(c -> (Component) c)
                     .toList());
             item.setItemMeta(meta);
         }
 
-        item.setAmount(Math.max(1, finalCurrent));
+        // Stack size represents current essence level
+        item.setAmount(Math.max(1, Math.min(64, current)));
         return item;
     }
 
@@ -133,25 +168,12 @@ public class EssenceGuiManager {
         }
     }
 
-    private Material getGlassPaneMaterial(DyeColor color) {
-        return switch (color) {
-            case WHITE -> Material.WHITE_STAINED_GLASS_PANE;
-            case ORANGE -> Material.ORANGE_STAINED_GLASS_PANE;
-            case MAGENTA -> Material.MAGENTA_STAINED_GLASS_PANE;
-            case LIGHT_BLUE -> Material.LIGHT_BLUE_STAINED_GLASS_PANE;
-            case YELLOW -> Material.YELLOW_STAINED_GLASS_PANE;
-            case LIME -> Material.LIME_STAINED_GLASS_PANE;
-            case PINK -> Material.PINK_STAINED_GLASS_PANE;
-            case GRAY -> Material.GRAY_STAINED_GLASS_PANE;
-            case LIGHT_GRAY -> Material.LIGHT_GRAY_STAINED_GLASS_PANE;
-            case CYAN -> Material.CYAN_STAINED_GLASS_PANE;
-            case PURPLE -> Material.PURPLE_STAINED_GLASS_PANE;
-            case BLUE -> Material.BLUE_STAINED_GLASS_PANE;
-            case BROWN -> Material.BROWN_STAINED_GLASS_PANE;
-            case GREEN -> Material.GREEN_STAINED_GLASS_PANE;
-            case RED -> Material.RED_STAINED_GLASS_PANE;
-            case BLACK -> Material.BLACK_STAINED_GLASS_PANE;
-        };
+    private Material parseMaterial(String materialStr) {
+        try {
+            return Material.valueOf(materialStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.PAPER;
+        }
     }
 
     private String serializeLegacy(String miniMessageText) {

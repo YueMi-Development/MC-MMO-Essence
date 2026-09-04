@@ -4,7 +4,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.yuemi.mmoessence.plugin.config.element.ElementConfig;
 import org.yuemi.mmoessence.plugin.config.gui.GeneralConfig;
-import org.yuemi.mmoessence.plugin.config.gui.StatsConfig;
 
 import java.io.File;
 import java.util.HashMap;
@@ -15,7 +14,6 @@ public class EssenceConfig {
     private int maxEssence = 100;
     private final Map<String, ElementConfig> elements = new HashMap<>();
     private GeneralConfig generalConfig;
-    private StatsConfig statsConfig;
     private final org.bukkit.plugin.java.JavaPlugin plugin;
 
     public EssenceConfig(org.bukkit.plugin.java.JavaPlugin plugin) {
@@ -44,21 +42,15 @@ public class EssenceConfig {
     }
 
     private void loadGuiConfigs() {
-        // Save default GUI configs if they don't exist
+        // Save default GUI config if it doesn't exist
         saveDefaultGuiConfig("gui/general.yml");
-        saveDefaultGuiConfig("gui/stats.yml");
-        
+
         // Load general.yml
         File generalFile = new File(plugin.getDataFolder(), "gui/general.yml");
         FileConfiguration generalConfigFile = YamlConfiguration.loadConfiguration(generalFile);
         this.generalConfig = GeneralConfig.fromConfig(generalConfigFile);
-        
-        // Load stats.yml
-        File statsFile = new File(plugin.getDataFolder(), "gui/stats.yml");
-        FileConfiguration statsConfigFile = YamlConfiguration.loadConfiguration(statsFile);
-        this.statsConfig = StatsConfig.fromConfig(statsConfigFile);
     }
-    
+
     private void saveDefaultGuiConfig(String resourcePath) {
         File file = new File(plugin.getDataFolder(), resourcePath);
         if (!file.exists()) {
@@ -85,9 +77,5 @@ public class EssenceConfig {
 
     public GeneralConfig getGeneralConfig() {
         return generalConfig;
-    }
-
-    public StatsConfig getStatsConfig() {
-        return statsConfig;
     }
 }

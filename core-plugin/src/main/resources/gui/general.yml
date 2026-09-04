@@ -1,55 +1,97 @@
-# General GUI settings for MC-MMO-Essence
+# GUI settings for MC-MMO-Essence
+# Version 2 - Reusable lore system
 
-# Do not change this version!
-gui-version: 1
+gui-version: 2
 
 # GUI title (MiniMessage format)
 title: "<gold>Elemental Essence"
 
-# GUI rows (1-6)
-rows: 6
+# GUI rows (1-6), default 3
+rows: 3
 
-# Decoration glass pane color
-border-color: "BLACK"
+# Reusable lore definitions
+lores:
+  progress-bar:
+    - "<gray>Progress: <white>{current}<gray>/<white>{max}"
+    - "<gray>{percent}%"
+  element-fire:
+    - "<red>Fire Element"
+    - "<dark_red>Weakness: Water"
+  element-water:
+    - "<blue>Water Element"
+    - "<dark_blue>Weakness: Fire"
+  element-earth:
+    - "<green>Earth Element"
+    - "<dark_green>Weakness: Wind"
+  element-wind:
+    - "<white>Wind Element"
+    - "<gray>Weakness: Earth"
+  element-dark:
+    - "<dark_gray>Dark Element"
+    - "<black>Weakness: Light"
+  element-light:
+    - "<yellow>Light Element"
+    - "<gold>Weakness: Dark"
 
-# Slots to fill with glass panes (border)
-border-slots:
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-  - 7
-  - 8
-  - 9
-  - 17
-  - 18
-  - 26
-  - 27
-  - 35
-  - 36
-  - 44
-  - 45
-  - 46
-  - 47
-  - 48
-  - 49
-  - 50
-  - 51
-  - 52
-  - 53
+# Element configurations
+# Keys must match element names in config.yml
+# material: Item material to display (uses YueMiLibs item provider)
+# color: Hex color for lore/cosmetics (e.g., #FF4500)
+# lore-key: references a lore definition above
+# weakness: optional list of elements this is weak against
+# slots: list of GUI slot indices for this element
+# show-progress: append progress lore to element lore
+elements:
+  FIRE:
+    material: "FIRE_CHARGE"
+    color: "#FF4500"
+    lore-key: "element-fire"
+    slots: [10]
+    show-progress: true
+    weakness:
+      - "WATER"
 
-# Whether to show progress bar
-show-progress-bar: true
+  WATER:
+    material: "WATER_BUCKET"
+    color: "#1E90FF"
+    lore-key: "element-water"
+    slots: [11]
+    show-progress: true
+    weakness:
+      - "FIRE"
 
-# Progress bar slots (filled with colored glass based on level)
-progress-bar-slots:
-  - 19
-  - 20
-  - 21
-  - 22
-  - 23
-  - 24
-  - 25
+  EARTH:
+    material: "GRASS_BLOCK"
+    color: "#228B22"
+    lore-key: "element-earth"
+    slots: [12]
+    show-progress: true
+    weakness:
+      - "WIND"
+
+  WIND:
+    material: "FEATHER"
+    color: "#F0F0F0"
+    lore-key: "element-wind"
+    slots: [14]
+    show-progress: true
+    weakness:
+      - "EARTH"
+
+  DARK:
+    material: "BLACK_DYE"
+    color: "#2F2F2F"
+    lore-key: "element-dark"
+    slots: [15]
+    show-progress: true
+    weakness:
+      - "LIGHT"
+
+  LIGHT:
+    material: "GLOWSTONE_DUST"
+    color: "#FFD700"
+    lore-key: "element-light"
+    slots: [16]
+    show-progress: true
+    weakness:
+      - "DARK"
