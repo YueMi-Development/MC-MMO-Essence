@@ -1,4 +1,7 @@
 # MC-MMO-Essence Configuration
 
 # Do not change this version!
-config-version: 1
+config-version: 2
+
+# Default max essence level for each element
+max-essence: 100
