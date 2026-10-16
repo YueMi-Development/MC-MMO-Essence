@@ -4,6 +4,7 @@ main: org.yuemi.mmoessence.plugin.EssencePlugin
 authors: [${authors}]
 contributors: [${contributors}]
 api-version: '${apiVersion}'
+folia-supported: true
 softdepend: [
   YueMiLibs
 ]
